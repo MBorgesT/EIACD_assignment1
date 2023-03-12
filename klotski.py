@@ -110,8 +110,6 @@ class KlotskiState:
         self.empty0, self.empty1 = self.empties
         self.empty0_row, self.empty0_col = self.empty0
         self.empty1_row, self.empty1_col = self.empty1
-        
-        self._late_init_cells()
 
         self.move_history = [] + move_history + [self.board]
 
@@ -124,11 +122,6 @@ class KlotskiState:
         
         assert len(self.empties) == 2
         return set(self.empties)
-    
-    def _late_init_cells(self):
-        for row in self.board:
-            for cell in row:
-                cell.late_init(self.board)
 
     def print(self):
         for row in self.board:
@@ -220,6 +213,10 @@ def read_board(file_name):
         for j in range(len(proto_board[0])):
             row.append(BoardCell(i, j, proto_board[i][j]))
         board.append(row)
+    
+    for row in board:
+        for cell in row:
+            cell.late_init(board)
     
     return board
 
