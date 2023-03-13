@@ -1,3 +1,4 @@
-from view import gui
+from view.gui import GUI
 
+gui = GUI()
 gui.run()

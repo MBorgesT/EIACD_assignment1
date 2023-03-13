@@ -44,6 +44,14 @@ class Klotski:
         
         self.state = KlotskiState(board, objectives)
 
+    def get_id_matrix(self):
+        assert self.state is not None
+        return self.state.get_id_matrix()
+    
+    def get_objectives(self):
+        assert self.state is not None
+        return self.state.get_objectives()
+
     def bfs(self):
         queue = [self.state]
         visited = []

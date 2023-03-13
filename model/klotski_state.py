@@ -68,6 +68,12 @@ class KlotskiState:
                 print(f'{cell.id}{spaces}', end='')
             print('\n')
 
+    def get_id_matrix(self):
+        return [[cell.id for cell in row] for row in self.board]
+    
+    def get_objectives(self):
+        return self.objectives
+
     def _empties_connected(self):
         return abs(self.empty0_row - self.empty1_row) + abs(self.empty0_col - self.empty1_col) == 1
 
