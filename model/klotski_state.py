@@ -1,83 +1,7 @@
 from copy import deepcopy
 
+from model.move import Move
 
-class Move:
-
-    possible_directions = ('up', 'left', 'down', 'right')
-    direction_sums = {
-        'up': (-1, 0),
-        'left': (0, -1),
-        'down': (1, 0),
-        'right': (0, 1)
-    }
-    direction_opposites = {
-        'up': 'down',
-        'left': 'right',
-        'down': 'up',
-        'right': 'left'
-    }
-    
-    def __init__(self, board, piece_id, direction):
-        self.board = deepcopy(board)
-        self.piece_id = piece_id
-        self.direction = direction
-
-        self._set_piece_locations()
-
-    def _set_piece_locations(self):
-        self.piece_locations = []
-        for i in range(len(self.board)):
-            for j in range(len(self.board[0])):
-                if self.board[i][j].id == self.piece_id:
-                    self.piece_locations.append((i, j,))
-    
-    def resulting_board(self):
-        for loc_row, loc_col in self.piece_locations:
-            self.board[loc_row][loc_col].id = -1
-
-        row_sum, col_sum = self.direction_sums[self.direction]
-        for loc_row, loc_col in self.piece_locations:
-            self.board[loc_row+row_sum][loc_col+col_sum].id = self.piece_id
-        
-        return self.board
-    
-
-class BoardCell:
-
-    def __init__(self, row, col, id):
-        self.row = row
-        self.col = col
-        self.id = id
-
-        self.up = None
-        self.left = None
-        self.down = None
-        self.right = None
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-    
-    def late_init(self, board):
-        if self.row - 1 >= 0:
-            self.up = board[self.row-1][self.col]
-        else:
-            self.up = None
-
-        if self.row + 1 <= len(board) - 1:
-            self.down = board[self.row+1][self.col]
-        else:
-            self.down = None
-
-        if self.col - 1 >= 0:
-            self.left = board[self.row][self.col-1]
-        else:
-            self.left = None
-
-        if self.col + 1 <= len(board[0]) - 1:
-            self.right = board[self.row][self.col+1]
-        else:
-            self.right = None
-    
 
 class KlotskiState:
 
@@ -101,10 +25,12 @@ class KlotskiState:
         'right': ('up', 'down')
     }
 
-    def __init__(self, board, move_history=[]):
+    def __init__(self, board, objectives, move_history=[]):
         self.board = deepcopy(board)
         self.max_row = len(self.board) - 1
         self.max_col = len(self.board[0]) - 1
+
+        self.objectives = objectives
 
         self.empties = self._find_empties()
         self.empty0, self.empty1 = self.empties
@@ -112,6 +38,17 @@ class KlotskiState:
         self.empty1_row, self.empty1_col = self.empty1
 
         self.move_history = [] + move_history + [self.board]
+
+    def __eq__(self, other):
+        # assumes that the boards are of same size
+        for i in range(len(self.board)):
+            for j in range(len(self.board[0])):
+                if self.board[i][j].id != other.board[i][j].id:
+                    return False
+        return True
+    
+    def __lt__(self, other):
+        return self.heuristic() < other.heuristic()
 
     def _find_empties(self):
         self.empties = []
@@ -183,56 +120,36 @@ class KlotskiState:
                         singles.append(Move(self.board, test_cell.id, self.direction_opposites[dir]))
 
         return singles
+    
+    def _get_top_left_most_red_square(self):
+        for i in range(len(self.board)):
+            for j in range(len(self.board[0])):
+                if self.board[i][j].id == 0:
+                    return (i, j)
+        raise Exception('''this shouldn't happen''')
+    
+    def heuristic(self):
+        # checks the manhattan distance of the top-left most square
+        # of the red piece to the top-left most destination
+        origin = self._get_top_left_most_red_square()
+        destination = self.objectives[0]
 
+        return abs(origin[0] - destination[0]) + abs(origin[1] - destination[1])
 
     def children(self):
-        children = []
+        moves = []
         if self._empties_connected():
-            children += self._get_double_moves()
-        children += self._get_single_moves()
+            moves += self._get_double_moves()
+        moves += self._get_single_moves()
 
-        return children
+        return [self.do_move(m) for m in moves]
     
     def do_move(self, move):
         new_board = move.resulting_board()
-        return KlotskiState(new_board, self.move_history)
+        return KlotskiState(new_board, self.objectives, self.move_history)
     
-
-def read_board(file_name):
-    proto_board = []
-    with open(file_name, 'r') as f:
-        for l in f:
-            l = l.replace('\n', '')
-            l = l.replace('  ', ' ')
-            l = l.split(' ')
-            proto_board.append([int(cell) for cell in l])
-    
-    board = []
-    for i in range(len(proto_board)):
-        row = []
-        for j in range(len(proto_board[0])):
-            row.append(BoardCell(i, j, proto_board[i][j]))
-        board.append(row)
-    
-    for row in board:
-        for cell in row:
-            cell.late_init(board)
-    
-    return board
-
-
-if __name__ == '__main__':
-    board = read_board('assignment1/board1.txt')
-    state = KlotskiState(board)
-    state.print()
-
-    print('\n')
-
-    children = state.children()
-    for child_i, c in enumerate(children):
-        print('\n')
-
-        print(f'{c.piece_id} - {c.direction}')
-
-        new_state = state.do_move(c)
-        new_state.print()
+    def is_complete(self):
+        for i, j in self.objectives:
+            if self.board[i][j].id != 0:
+                return False
+        return True
