@@ -1,23 +1,32 @@
 import pygame
+import os
 from controller.controller import Controller
 
 
 class GUI:
 
+    inputs_folder = 'inputs/'
+
     def __init__(self):
-        pass
+        self.screen_width, self.screen_height = 800, 600
+        self.board_width = 550
+        self.divider_width = 5
+        self.level_selector_width = self.screen_width - self.board_width - self.divider_width
+
+        self.level_id = 'board1'
 
     def run(self):
         pygame.init()
 
-        self.screen = pygame.display.set_mode((800, 600))
+        self.font = pygame.font.SysFont('Arial', 16)
+
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
 
         self.clock = pygame.time.Clock()
 
         self.controller = Controller()
         # temporary testing
-        self.controller.load_game('board1')
-        board, goals = self.controller.get_current_board()
+        self.controller.load_game(self.level_id)
 
         while True:
             # Process player inputs.
@@ -25,6 +34,8 @@ class GUI:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.click_action()
 
             # Do logical updates here.
             # ...
@@ -33,12 +44,22 @@ class GUI:
 
             # Render the graphics here.
             # ...
+            board, goals = self.controller.get_current_board()
             self.draw_board(board, goals)
 
             pygame.display.flip()  # Refresh on-screen display
             self.clock.tick(60)
 
-    def draw_board(self, board, goals, margin=100, square_size=60, square_border=2, goal_size=16):
+    def click_action(self):
+        mouse_pos = pygame.mouse.get_pos()
+        for b, l in self.buttons:
+            if b.collidepoint(mouse_pos):
+                self.controller.load_game(l)
+                return
+
+    def draw_board(self, board, goals, square_size=80, square_border=2, goal_size=16):
+        margin = (self.board_width - (square_size * len(board[0]))) / 2
+
         for i, row in enumerate(board):
             for j, cell in enumerate(row):
                 if cell == -1:
@@ -71,6 +92,12 @@ class GUI:
                         pygame.Rect(width_pos-(2*square_border), height_pos,
                                     2*square_border, square_size-(2*square_border))
                     )
+                if i >= 1 and j >= 1 and board[i-1][j-1] == cell:
+                    pygame.draw.rect(
+                        self.screen, color,
+                        pygame.Rect(width_pos-(2*square_border), height_pos-(2*square_border),
+                                    2*square_border, 2*square_border)
+                    )
 
         # goals
         for goal_row, goal_col in goals:
@@ -78,9 +105,47 @@ class GUI:
             width_pos = margin + (goal_col * square_size) + ((square_size - goal_size) / 2)
 
             pygame.draw.rect(
-                self.screen, (255, 0, 0),
+                self.screen, (255, 50, 50),
                 pygame.Rect(width_pos, height_pos,
                             goal_size, goal_size),
                             border_radius=2
             )
+
+        # divider
+        self.draw_divider()
+
+        # selectors
+        self.draw_level_selector()
+
+    def draw_divider(self):
+        pygame.draw.rect(
+            self.screen, (255, 255, 255),
+            pygame.Rect(self.board_width, 0,
+                        self.divider_width, self.screen_height)
+        )
+
+    def draw_level_selector(self, margin_size=2, rectangle_height=65):
+        levels = [x.replace('.txt', '') for x in os.listdir(self.inputs_folder)]
+        base_width = self.board_width + self.divider_width
+        
+        self.buttons = []
+        for i, l in enumerate(levels):
+            base_height = i*rectangle_height
+
+            pygame.draw.rect(
+                self.screen, (255, 255, 255),
+                pygame.Rect(base_width, base_height,
+                            self.level_selector_width, rectangle_height)
+            )
+            pygame.draw.rect(
+                self.screen, (0, 0, 0),
+                pygame.Rect(base_width + margin_size, base_height - margin_size,
+                            self.level_selector_width - (2 * margin_size), rectangle_height - (2 * margin_size))
+            )
+
+            text_img = self.font.render(l, True, (255, 255, 255))
+            b = self.screen.blit(text_img, (base_width + 2 * margin_size, base_height + 2 * margin_size))
+            self.buttons.append((b, l))
+
+
        

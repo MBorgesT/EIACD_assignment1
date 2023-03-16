@@ -58,30 +58,55 @@ class Klotski:
 
         while queue:
             current = queue.pop(0)
-            visited.append(self.state)
+            visited.append(self.state.get_id_matrix())
 
             if current.is_complete():
                 return current
 
             for child in current.children():
-                if child not in visited:
+                if child.get_id_matrix() not in visited:
                     queue.append(child)
 
         return None
-
-    def a_star(self):
+    
+    def greedy_search(self):
+        heuristic = lambda self, other: self.manhattan() < other.manhattan()
+        setattr(KlotskiState, "__lt__", heuristic)
+        
         states = [self.state]
         visited = []
         
         while states:
             current = heapq.heappop(states)
-            visited.append(current)
+            visited.append(current.get_id_matrix())
 
             if current.is_complete():
                 return current
 
             for child in current.children():
-                if child not in visited:
+                if child.get_id_matrix() not in visited:
+                    heapq.heappush(states, child)
+        
+        return None
+
+    def a_star(self):
+        heuristic = lambda self, other: \
+            self.manhattan() + len(self.move_history) - 1 \
+            < other.manhattan() + len(other.move_history) - 1
+        setattr(KlotskiState, "__lt__", heuristic)
+        
+        states = [self.state]
+        visited = []
+        
+        while states:
+            current = heapq.heappop(states)
+            visited.append(current.get_id_matrix())
+
+            if current.is_complete():
+                return current
+
+            for child in current.children():
+                if child.get_id_matrix() not in visited:
                     heapq.heappush(states, child)
         
         return None
@@ -91,5 +116,5 @@ if __name__ == '__main__':
     game = Klotski()
     game.read_board('assignment1/inputs/board1.txt')
 
-    result = game.a_star()
+    result = game.bfs()
     print(len(result.move_history))

@@ -47,8 +47,10 @@ class KlotskiState:
                     return False
         return True
     
+    '''
     def __lt__(self, other):
         return self.heuristic() < other.heuristic()
+    '''
 
     def _find_empties(self):
         self.empties = []
@@ -134,13 +136,14 @@ class KlotskiState:
                     return (i, j)
         raise Exception('''this shouldn't happen''')
     
-    def heuristic(self):
+    def manhattan(self):
         # checks the manhattan distance of the top-left most square
         # of the red piece to the top-left most destination
         origin = self._get_top_left_most_red_square()
         destination = self.objectives[0]
 
-        return abs(origin[0] - destination[0]) + abs(origin[1] - destination[1])
+        return abs(origin[0] - destination[0]) \
+            + abs(origin[1] - destination[1])
 
     def children(self):
         moves = []
