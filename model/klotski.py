@@ -69,8 +69,11 @@ class Klotski:
 
         return None
     
-    def greedy_search(self):
-        heuristic = lambda self, other: self.manhattan() < other.manhattan()
+    def greedy_search(self, heuristic=None, manhattan_multi=20, zeros_empty_multi=20, inbet_multi=0):
+        if heuristic is None:
+            heuristic = lambda self, other: \
+                self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) \
+                < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi)
         setattr(KlotskiState, "__lt__", heuristic)
         
         states = [self.state]
@@ -89,32 +92,8 @@ class Klotski:
         
         return None
 
-    def a_star(self):
+    def a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi):
         heuristic = lambda self, other: \
-            self.manhattan() + len(self.move_history) - 1 \
-            < other.manhattan() + len(other.move_history) - 1
-        setattr(KlotskiState, "__lt__", heuristic)
-        
-        states = [self.state]
-        visited = []
-        
-        while states:
-            current = heapq.heappop(states)
-            visited.append(current.get_id_matrix())
-
-            if current.is_complete():
-                return current
-
-            for child in current.children():
-                if child.get_id_matrix() not in visited:
-                    heapq.heappush(states, child)
-        
-        return None
-
-
-if __name__ == '__main__':
-    game = Klotski()
-    game.read_board('assignment1/inputs/board1.txt')
-
-    result = game.bfs()
-    print(len(result.move_history))
+            self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + len(self.move_history) - 1 \
+            < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + len(other.move_history) - 1
+        return self.greedy_search(heuristic)
