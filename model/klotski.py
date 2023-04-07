@@ -103,7 +103,6 @@ class Klotski:
         
         return None
     
-    '''
     def parallel_a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
         heuristic = lambda self, other: \
             self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(self.move_history) - 1) * len_multi \
@@ -143,4 +142,3 @@ class Klotski:
             for f in not_done:
                 f.cancel()
             return list(done)[0].result()
-    '''

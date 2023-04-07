@@ -165,23 +165,23 @@ class KlotskiState:
             if self.empty0_row >= 1 \
                     and self.board[self.empty0_row][self.empty0_col].up.id == self.board[self.empty1_row][self.empty1_col].up.id:
                 doubles.append(
-                    Move(self.board, self.board[self.empty0_row][self.empty0_col].up.id, 'down'))
+                    Move(self.board[self.empty0_row][self.empty0_col].up.id, 'down'))
 
             if self.empty0_row <= self.max_row - 1 \
                     and self.board[self.empty0_row][self.empty0_col].down.id == self.board[self.empty1_row][self.empty1_col].down.id:
                 doubles.append(
-                    Move(self.board, self.board[self.empty0_row][self.empty0_col].down.id, 'up'))
+                    Move(self.board[self.empty0_row][self.empty0_col].down.id, 'up'))
 
         elif self.empty0_col == self.empty1_col:
             if self.empty0_col >= 1 \
                     and self.board[self.empty0_row][self.empty0_col].left.id == self.board[self.empty1_row][self.empty1_col].left.id:
                 doubles.append(
-                    Move(self.board, self.board[self.empty0_row][self.empty0_col].left.id, 'right'))
+                    Move(self.board[self.empty0_row][self.empty0_col].left.id, 'right'))
 
             if self.empty0_col <= self.max_col - 1 \
                     and self.board[self.empty0_row][self.empty0_col].right.id == self.board[self.empty1_row][self.empty1_col].right.id:
                 doubles.append(
-                    Move(self.board, self.board[self.empty0_row][self.empty0_col].right.id, 'left'))
+                    Move(self.board[self.empty0_row][self.empty0_col].right.id, 'left'))
 
         else:
             raise Exception(
@@ -211,7 +211,7 @@ class KlotskiState:
                             and (test_cell[adj1] is None or test_cell.id != test_cell[adj1].id):
 
                         singles.append(
-                            Move(self.board, test_cell.id, self.direction_opposites[dir]))
+                            Move(test_cell.id, self.direction_opposites[dir]))
 
         return singles
 
@@ -240,7 +240,7 @@ class KlotskiState:
         Returns:
             KlotskiState: State reachable by the move.
         """
-        new_board = move.resulting_board()
+        new_board = move.resulting_board(self.board)
         return KlotskiState(new_board, self.goals, self.move_history)
 
     def _manhattan(self):
@@ -340,7 +340,7 @@ class KlotskiState:
             moves += self._get_double_moves()
         moves += self._get_single_moves()
 
-        return [self.do_move(m) for m in moves]
+        return [self._do_move(m) for m in moves]
 
     def is_complete(self):
         """
