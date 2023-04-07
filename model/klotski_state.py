@@ -10,8 +10,10 @@ class KlotskiState:
     its evaluation through heuristics.
     """
 
-    # the following variables are used to make the  functions that
-    # search for new moves easier to read
+    """
+    The following variables are used to make the  functions that
+    search for new moves easier to read.
+    """
     possible_directions = ('up', 'left', 'down', 'right')
     direction_sums = {
         'up': (-1, 0),
