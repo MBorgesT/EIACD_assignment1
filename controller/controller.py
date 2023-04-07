@@ -3,6 +3,11 @@ from model.klotski import Klotski
 
 class Controller:
 
+    search_args = {
+        'greedy': (50, 50, 15),
+        'a_star': (50, 50, 15)
+    }
+
     def __init__(self, play_interval=.67):
         self.play_interval = play_interval
 
@@ -18,7 +23,7 @@ class Controller:
         self.alg_move_history = dict()
 
     def load_game(self, game_id):
-        self.game.read_board(f'/home/matheus/UP/2023-1/ElemIADS/assignment1/inputs/{game_id}.txt')
+        self.game.read_board(f'inputs/set1/{game_id}.txt')
         self.objectives = self.game.get_objectives()
 
         self.playing_result = False
@@ -56,6 +61,7 @@ class Controller:
             print('Searching...')
             self.searching = True
         finally:
-            self.alg_move_history[alg] = self.search_algs[alg]().move_history
+            args = self.search_args[alg]
+            self.alg_move_history[alg] = self.search_algs[alg](*args).move_history
             self.searching = False
             print('Done')

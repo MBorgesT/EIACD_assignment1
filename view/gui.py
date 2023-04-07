@@ -5,7 +5,7 @@ from controller.controller import Controller
 
 class GUI:
 
-    inputs_folder = 'inputs/'
+    inputs_folder = 'inputs/set1/'
     search_algs = ('greedy', 'a_star')
 
     def __init__(self):
@@ -81,7 +81,7 @@ class GUI:
         for i, row in enumerate(board):
             for j, cell in enumerate(row):
                 if cell == -1:
-                    color = (255, 255, 255)
+                    color = (220, 220, 220)
                 elif cell == 0:
                     color = (255, 0, 0)
                 else:
@@ -147,9 +147,10 @@ class GUI:
                         self.divider_width, self.screen_height)
         )
 
-    def draw_level_selector(self, margin_size=2, rectangle_height=65):
+    def draw_level_selector(self, margin_size=2, rectangle_height=30):
         levels = [x.replace('.txt', '')
-                  for x in os.listdir(self.inputs_folder)]
+                  for x in 
+                  sorted(os.listdir(self.inputs_folder), key=lambda x: int(''.join(c for c in x if c.isdigit())))]
         base_width = self.board_width + self.divider_width
 
         self.level_selection_buttons = []

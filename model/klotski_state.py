@@ -48,11 +48,19 @@ class KlotskiState:
                 if self.board[i][j].id != other.board[i][j].id:
                     return False
         return True
-
-    '''
-    def __lt__(self, other):
-        return self.heuristic() < other.heuristic()
-    '''
+    
+    def __str__(self):
+        values = []
+        for row in self.board:
+            line = []
+            for cell in row:
+                n_spaces = 3 - len(str(cell.id))
+                spaces = ''.join([' ' for _ in range(n_spaces)])
+                line.append(f'{cell.id}{spaces}')
+                
+            values.append(''.join(line))
+        
+        return '\n'.join(values)
 
     def _find_empties(self):
         empties = []
@@ -72,14 +80,6 @@ class KlotskiState:
                     zeros.append((i, j,))
 
         return set(zeros)
-
-    def print(self):
-        for row in self.board:
-            for cell in row:
-                n_spaces = 3 - len(str(cell.id))
-                spaces = ''.join([' ' for _ in range(n_spaces)])
-                print(f'{cell.id}{spaces}', end='')
-            print('\n')
 
     def get_id_matrix(self):
         return [[cell.id for cell in row] for row in self.board]
@@ -198,7 +198,7 @@ class KlotskiState:
             + int(all([self.empty1[0] > z[0] for z in self.zeros]))
     '''
 
-    def heuristic(self, manhattan_multi=15, zeros_empty_multi=10, inbet_multi=5):
+    def heuristic(self, manhattan_multi, zeros_empty_multi, inbet_multi):
         return manhattan_multi * self.manhattan() \
             + zeros_empty_multi * self.zeros_empties_distance() \
             + inbet_multi * self.empties_inbetween_zeros_goals()

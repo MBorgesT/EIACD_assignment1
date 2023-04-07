@@ -1,8 +1,12 @@
 from copy import deepcopy
 import heapq
+from concurrent.futures import wait, FIRST_COMPLETED
+from pebble import ProcessPool
+import multiprocessing
 
 from model.board_cell import BoardCell
 from model.klotski_state import KlotskiState
+from model.trie import Trie
     
 
 class Klotski:
@@ -69,7 +73,13 @@ class Klotski:
 
         return None
     
-    def greedy_search(self, heuristic=None, manhattan_multi=20, zeros_empty_multi=20, inbet_multi=0):
+    def a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
+        heuristic = lambda self, other: \
+            self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(self.move_history) - 1) * len_multi \
+            < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(other.move_history) - 1) * len_multi
+        return self.greedy_search(heuristic=heuristic)
+    
+    def greedy_search(self, manhattan_multi=12, zeros_empty_multi=1, inbet_multi=2, heuristic=None):
         if heuristic is None:
             heuristic = lambda self, other: \
                 self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) \
@@ -77,23 +87,57 @@ class Klotski:
         setattr(KlotskiState, "__lt__", heuristic)
         
         states = [self.state]
-        visited = []
+        visited = Trie()
         
         while states:
             current = heapq.heappop(states)
-            visited.append(current.get_id_matrix())
+            visited.insert(current.get_id_matrix())
 
             if current.is_complete():
                 return current
 
             for child in current.children():
-                if child.get_id_matrix() not in visited:
+                if not visited.is_in_trie(child.get_id_matrix()):
                     heapq.heappush(states, child)
         
         return None
-
-    def a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi):
+    
+    def parallel_a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
         heuristic = lambda self, other: \
-            self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + len(self.move_history) - 1 \
-            < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + len(other.move_history) - 1
-        return self.greedy_search(heuristic)
+            self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(self.move_history) - 1) * len_multi \
+            < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(other.move_history) - 1) * len_multi
+        return self.parallel_greedy_search(heuristic=heuristic)
+    
+    def parallel_greedy_search(self, manhattan_multi=12, zeros_empty_multi=1, inbet_multi=2, heuristic=None):
+        global loop
+        
+        if heuristic is None:
+            heuristic = lambda self, other: \
+                self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) \
+                < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi)
+        setattr(KlotskiState, "__lt__", heuristic)
+        
+        states = [self.state]
+        visited = Trie()
+
+        def loop():
+            while True:
+                current = heapq.heappop(states)
+                visited.insert(current.get_id_matrix())
+
+                if current.is_complete():
+                    return current
+
+                for child in current.children():
+                    if not visited.is_in_trie(child.get_id_matrix()):
+                        heapq.heappush(states, child)
+        
+        workers = multiprocessing.cpu_count()
+        with ProcessPool(max_workers=workers) as pool:
+            funcs = set()
+            for _ in range(workers):
+                funcs.add(pool.schedule(loop))
+            done, not_done = wait(funcs, return_when=FIRST_COMPLETED)
+            for f in not_done:
+                f.cancel()
+            return list(done)[0].result()
