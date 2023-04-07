@@ -57,8 +57,6 @@ class KlotskiState:
 
         self.empties = self._find_empties()
         self.empty0, self.empty1 = self.empties
-        self.empty0_row, self.empty0_col = self.empty0
-        self.empty1_row, self.empty1_col = self.empty1
 
         self.zeros = self._find_zeros()
 
@@ -118,7 +116,7 @@ class KlotskiState:
         for row in range(len(self.board)):
             for col in range(len(self.board[0])):
                 if self.board[row][col].id == -1:
-                    empties.append((row, col))
+                    empties.append(self.board[row][col])
 
         assert len(empties) == 2
         return set(empties)
@@ -135,7 +133,7 @@ class KlotskiState:
         for row in range(len(self.board)):
             for col in range(len(self.board[0])):
                 if self.board[row][col].id == 0:
-                    zeros.append((row, col))
+                    zeros.append(self.board[row][col])
 
         return set(zeros)
 
@@ -157,31 +155,28 @@ class KlotskiState:
         Returns:
             boolean: True if connected, False if not.
         """
-        return abs(self.empty0_row - self.empty1_row) + abs(self.empty0_col - self.empty1_col) == 1
+        return abs(self.empty0.row - self.empty1.row) + abs(self.empty0.col - self.empty1.col) == 1
 
     def _get_double_moves(self):
         doubles = []
-        if self.empty0_row == self.empty1_row:
-            if self.empty0_row >= 1 \
-                    and self.board[self.empty0_row][self.empty0_col].up.id == self.board[self.empty1_row][self.empty1_col].up.id:
+        if self.empty0.row == self.empty1.row:
+            if self.empty0.row >= 1 and self.empty0.up.id == self.empty1.up.id:
                 doubles.append(
-                    Move(self.board[self.empty0_row][self.empty0_col].up.id, 'down'))
+                    Move(self.empty0.up.id, 'down'))
 
-            if self.empty0_row <= self.max_row - 1 \
-                    and self.board[self.empty0_row][self.empty0_col].down.id == self.board[self.empty1_row][self.empty1_col].down.id:
+            if self.empty0.row <= self.max_row - 1 \
+                    and self.empty0.down.id == self.empty1.down.id:
                 doubles.append(
-                    Move(self.board[self.empty0_row][self.empty0_col].down.id, 'up'))
+                    Move(self.empty0.down.id, 'up'))
 
-        elif self.empty0_col == self.empty1_col:
-            if self.empty0_col >= 1 \
-                    and self.board[self.empty0_row][self.empty0_col].left.id == self.board[self.empty1_row][self.empty1_col].left.id:
+        elif self.empty0.col == self.empty1.col:
+            if self.empty0.col >= 1 and self.empty0.left.id == self.empty1.left.id:
                 doubles.append(
-                    Move(self.board[self.empty0_row][self.empty0_col].left.id, 'right'))
+                    Move(self.empty0.left.id, 'right'))
 
-            if self.empty0_col <= self.max_col - 1 \
-                    and self.board[self.empty0_row][self.empty0_col].right.id == self.board[self.empty1_row][self.empty1_col].right.id:
+            if self.empty0.col <= self.max_col - 1 and self.empty0.right.id == self.empty1.right.id:
                 doubles.append(
-                    Move(self.board[self.empty0_row][self.empty0_col].right.id, 'left'))
+                    Move(self.empty0.right.id, 'left'))
 
         else:
             raise Exception(
@@ -193,10 +188,10 @@ class KlotskiState:
         # this assumes that every piece is rectangular
         singles = []
 
-        for empty_row, empty_col in self.empties:
+        for e in self.empties:
             for dir in self.possible_directions:
                 row_sum, col_sum = self.direction_sums[dir]
-                test_row, test_col = empty_row + row_sum, empty_col + col_sum
+                test_row, test_col = e.row + row_sum, e.col + col_sum
 
                 if test_row >= 0 and test_row <= self.max_row \
                         and test_col >= 0 and test_col <= self.max_col:
@@ -265,7 +260,7 @@ class KlotskiState:
         Returns:
             int: Manhattan distance.
         """
-        dist_func = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
+        dist_func = lambda x, y: abs(x.row - y.row) + abs(x.col - y.col)
 
         dist0 = min([dist_func(z, self.empty0) for z in self.zeros]) - 1
         dist1 = min([dist_func(z, self.empty1) for z in self.zeros]) - 1
@@ -280,12 +275,12 @@ class KlotskiState:
         Returns:
             int: Sum of the values.
         """
-        v0 = int(any([self.empty0[0] == z[0] == o[0] \
-                    or self.empty0[1] == z[1] == o[1] \
+        v0 = int(any([self.empty0.row == z.row == o[0] \
+                    or self.empty0.col == z.col == o[1] \
                     for z in self.zeros for o in self.goals]))
         
-        v1 = int(any([self.empty1[0] == z[0] == o[0] \
-                    or self.empty1[1] == z[1] == o[1] \
+        v1 = int(any([self.empty1.row == z.row == o[0] \
+                    or self.empty1.col == z.col == o[1] \
                     for z in self.zeros for o in self.goals]))
         
         return v0 + v1
