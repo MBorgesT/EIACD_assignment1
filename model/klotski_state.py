@@ -4,7 +4,14 @@ from model.move import Move
 
 
 class KlotskiState:
+    """
+    Individual game state representation, with functions related
+    to the generation of new states reachable from this one and
+    its evaluation through heuristics.
+    """
 
+    # the following variables are used to make the  functions that
+    # search for new moves easier to read
     possible_directions = ('up', 'left', 'down', 'right')
     direction_sums = {
         'up': (-1, 0),
@@ -25,12 +32,28 @@ class KlotskiState:
         'right': ('up', 'down')
     }
 
-    def __init__(self, board, objectives, move_history=[]):
+    def __init__(self, board, goals, move_history=[]):
+        """
+        Args:
+            board (Cell matrix): Matrix that represents a state of the 
+            game. Cells of id 0 represent the game's red square and 
+            cells of id -1 represent empty squares.
+
+            goals (array of 2D tuples): List made out of (row, col) 
+            tuples with the red square's end goal.
+
+            move_history (list, optional): List made of out id (int)
+            matrices, these being the past board states that led to
+            this one. The matrices are made out of integers instead of
+            Cell instances for it being a simpler data structure, and
+            the pointers to adjascent cells not being necessary for
+            what this is used.
+        """
         self.board = deepcopy(board)
         self.max_row = len(self.board) - 1
         self.max_col = len(self.board[0]) - 1
 
-        self.objectives = objectives
+        self.goals = goals
 
         self.empties = self._find_empties()
         self.empty0, self.empty1 = self.empties
@@ -42,7 +65,22 @@ class KlotskiState:
         self.move_history = [] + move_history + [self.get_id_matrix()]
 
     def __eq__(self, other):
-        # assumes that the boards are of same size
+        """
+        Checks if both states have the same board configuration.
+
+        Args:
+            other (KlotskiState): The state to compare self to.
+
+        Raises:
+            Exception: If the boards are of different sizes.
+
+        Returns:
+            boolean: True if they're equal, False if not.
+        """
+        assert type(other) is KlotskiState
+        if len(self.board) != len(other.board) or len(self.board[0]) != len(other.board[0]):
+            raise Exception('Boards of different size being compared')
+        
         for i in range(len(self.board)):
             for j in range(len(self.board[0])):
                 if self.board[i][j].id != other.board[i][j].id:
@@ -50,6 +88,12 @@ class KlotskiState:
         return True
     
     def __str__(self):
+        """
+        Conversion of the state to string.
+
+        Returns:
+            str: String representation of the current state.
+        """
         values = []
         for row in self.board:
             line = []
@@ -63,31 +107,56 @@ class KlotskiState:
         return '\n'.join(values)
 
     def _find_empties(self):
+        """
+        Search for the empty Cells (id == -1)
+
+        Returns:
+            Tuple of 2D tuples: List of tuples made out of rows 
+            and cols.
+        """
         empties = []
-        for i in range(len(self.board)):
-            for j in range(len(self.board[0])):
-                if self.board[i][j].id == -1:
-                    empties.append((i, j,))
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                if self.board[row][col].id == -1:
+                    empties.append((row, col))
 
         assert len(empties) == 2
         return set(empties)
 
     def _find_zeros(self):
+        """
+        Search for the red square Cells (id == 0)
+
+        Returns:
+            Tuple of 2D tuples: List of tuples made out of rows 
+            and cols.
+        """
         zeros = []
-        for i in range(len(self.board)):
-            for j in range(len(self.board[0])):
-                if self.board[i][j].id == 0:
-                    zeros.append((i, j,))
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                if self.board[row][col].id == 0:
+                    zeros.append((row, col))
 
         return set(zeros)
 
     def get_id_matrix(self):
+        """
+        Creates a matrix made out of the board Cells ids
+
+        Returns:
+            int matrix: Cell id matrix
+        """
         return [[cell.id for cell in row] for row in self.board]
 
-    def get_objectives(self):
-        return self.objectives
-
     def _empties_connected(self):
+        """
+        Checks if the empty squares are connecting by calculating
+        their manhattan distance, and returning True of this 
+        distance equals 1.
+
+        Returns:
+            boolean: True if connected, False if not.
+        """
         return abs(self.empty0_row - self.empty1_row) + abs(self.empty0_col - self.empty1_col) == 1
 
     def _get_double_moves(self):
@@ -147,37 +216,77 @@ class KlotskiState:
         return singles
 
     def _get_top_left_most_red_square(self):
-        for i in range(len(self.board)):
-            for j in range(len(self.board[0])):
-                if self.board[i][j].id == 0:
-                    return (i, j)
+        """
+        Iterates through the Cell matrix and returns the first 
+        red square it finds. Used to calculate the manhattan distance.
+
+        Returns:
+            int tuple: 2D int tuple of (row, col)
+        """
+
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                if self.board[row][col].id == 0:
+                    return (row, col)
         raise Exception('''this shouldn't happen''')
 
-    def manhattan(self):
-        # checks the manhattan distance of the top-left most square
-        # of the red piece to the top-left most destination
+    def _do_move(self, move):
+        """
+        Creates a new KlotskiState from a possible move.
+
+        Args:
+            move (Move): The move to be done.
+
+        Returns:
+            KlotskiState: State reachable by the move.
+        """
+        new_board = move.resulting_board()
+        return KlotskiState(new_board, self.goals, self.move_history)
+
+    def _manhattan(self):
+        """
+        Calculates the manhattan distance of the top-left most square
+        of the red piece to the top-left most goal.
+
+        Returns:
+            int: Manhattan distance.
+        """
         origin = self._get_top_left_most_red_square()
-        destination = self.objectives[0]
+        goal = self.goals[0]
 
-        return abs(origin[0] - destination[0]) \
-            + abs(origin[1] - destination[1])
+        return abs(origin[0] - goal[0]) \
+            + abs(origin[1] - goal[1])
 
-    def zeros_empties_distance(self):
-        def dist_func(x, y): return abs(x[0] - y[0]) + abs(x[1] - y[1])
+    def _zeros_empties_distance(self):
+        """
+        Calculates the distance between the empty squares and the red
+        piece.
+
+        Returns:
+            int: Manhattan distance.
+        """
+        dist_func = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
 
         dist0 = min([dist_func(z, self.empty0) for z in self.zeros]) - 1
         dist1 = min([dist_func(z, self.empty1) for z in self.zeros]) - 1
 
         return dist0 + dist1
 
-    def empties_inbetween_zeros_goals(self):
+    def _empties_inbetween_zeros_goals(self):
+        """
+        Checks if the the empty squares are between the red piece and 
+        the goals. Each value is related to each empty square.
+
+        Returns:
+            int: Sum of the values.
+        """
         v0 = int(any([self.empty0[0] == z[0] == o[0] \
                     or self.empty0[1] == z[1] == o[1] \
-                    for z in self.zeros for o in self.objectives]))
+                    for z in self.zeros for o in self.goals]))
         
         v1 = int(any([self.empty1[0] == z[0] == o[0] \
                     or self.empty1[1] == z[1] == o[1] \
-                    for z in self.zeros for o in self.objectives]))
+                    for z in self.zeros for o in self.goals]))
         
         return v0 + v1
 
@@ -199,11 +308,33 @@ class KlotskiState:
     '''
 
     def heuristic(self, manhattan_multi, zeros_empty_multi, inbet_multi):
-        return manhattan_multi * self.manhattan() \
-            + zeros_empty_multi * self.zeros_empties_distance() \
-            + inbet_multi * self.empties_inbetween_zeros_goals()
+        """
+        Weighted sum of each evaluation heuristic we have in the class.
+
+        Args:
+            manhattan_multi (float): Weight for the manhattan distance.
+
+            zeros_empty_multi (float): Weight for the distance between
+            the red piece and the empty squares.
+
+            inbet_multi (float): Weight for the Check if the the empty 
+            squares are between the red piece and the goals.
+        goals
+
+        Returns:
+            float: Heuristic value.
+        """
+        return manhattan_multi * self._manhattan() \
+            + zeros_empty_multi * self._zeros_empties_distance() \
+            + inbet_multi * self._empties_inbetween_zeros_goals()
 
     def children(self):
+        """
+        Generates the reachable statles from the current one.
+
+        Returns:
+            List of KlotskiState: Reachable states.
+        """
         moves = []
         if self._empties_connected():
             moves += self._get_double_moves()
@@ -211,12 +342,15 @@ class KlotskiState:
 
         return [self.do_move(m) for m in moves]
 
-    def do_move(self, move):
-        new_board = move.resulting_board()
-        return KlotskiState(new_board, self.objectives, self.move_history)
-
     def is_complete(self):
-        for i, j in self.objectives:
-            if self.board[i][j].id != 0:
+        """
+        Checks if the state is a final one. It is when all the
+        goal squares are filled with Cells of id 0.
+
+        Returns:
+            boolean: True if complete, False if not.
+        """
+        for row, col in self.goals:
+            if self.board[row][col].id != 0:
                 return False
         return True

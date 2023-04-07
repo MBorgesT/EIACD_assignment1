@@ -46,6 +46,7 @@ class Klotski:
             for cell in row:
                 cell.late_init(board)
         
+        self.objectives = objectives
         self.state = KlotskiState(board, objectives)
 
     def get_id_matrix(self):
@@ -53,8 +54,8 @@ class Klotski:
         return self.state.get_id_matrix()
     
     def get_objectives(self):
-        assert self.state is not None
-        return self.state.get_objectives()
+        assert self.objectives is not None
+        return self.objectives
 
     def bfs(self):
         queue = [self.state]
@@ -102,6 +103,7 @@ class Klotski:
         
         return None
     
+    '''
     def parallel_a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
         heuristic = lambda self, other: \
             self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(self.move_history) - 1) * len_multi \
@@ -141,3 +143,4 @@ class Klotski:
             for f in not_done:
                 f.cancel()
             return list(done)[0].result()
+    '''
