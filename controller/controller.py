@@ -24,7 +24,7 @@ class Controller:
 
     def load_game(self, game_id):
         self.game.read_board(f'inputs/set1/{game_id}.txt')
-        self.objectives = self.game.get_objectives()
+        self.goals = self.game.get_goals()
 
         self.playing_result = False
         self.alg_move_history = dict()
@@ -35,9 +35,9 @@ class Controller:
                 self.move_i += 1
                 self.move_tick = time()
 
-            return self.move_history[self.move_i], self.objectives
+            return self.move_history[self.move_i], self.goals
         else:
-            return self.game.get_id_matrix(), self.objectives
+            return self.game.get_id_matrix(), self.goals
         
     def _init_play_animation(self):
         self.playing_result = True

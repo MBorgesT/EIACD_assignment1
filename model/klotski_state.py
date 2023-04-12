@@ -62,7 +62,8 @@ class KlotskiState:
 
         self.zeros = self._find_zeros()
 
-        self.move_history = [] + move_history + [self.get_id_matrix()]
+        self.id_matrix = self._get_id_matrix()
+        self.move_history = [] + move_history + [self.id_matrix]
 
     def __eq__(self, other):
         """
@@ -139,7 +140,7 @@ class KlotskiState:
 
         return set(zeros)
 
-    def get_id_matrix(self):
+    def _get_id_matrix(self):
         """
         Creates a matrix made out of the board Cells ids
 
@@ -237,7 +238,7 @@ class KlotskiState:
 
         for row in range(len(self.board)):
             for col in range(len(self.board[0])):
-                if self.board[row][col].id == 0:
+                if self.board[row][col].is_red_piece():
                     return (row, col)
         raise Exception('''this shouldn't happen''')
 
@@ -328,7 +329,7 @@ class KlotskiState:
             zeros_empty_multi (float): Weight for the distance between
             the red piece and the empty squares.
 
-            inbet_multi (float): Weight for the Check if the the empty 
+            inbet_multi (float): Weight for the heck if the the empty 
             squares are between the red piece and the goals.
         goals
 
