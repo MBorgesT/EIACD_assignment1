@@ -76,7 +76,7 @@ class Move:
             board[loc_row][loc_col].id = -1
 
         row_sum, col_sum = self.direction_sums[self.direction]
-        for loc_row, loc_col in self.piece_locations:
+        for loc_row, loc_col in piece_locations:
             board[loc_row+row_sum][loc_col+col_sum].id = self.piece_id
         
         return board

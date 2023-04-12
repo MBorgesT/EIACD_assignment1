@@ -47,3 +47,15 @@ class BoardCell:
 
         if self.col + 1 <= len(board[0]) - 1:
             self.right = board[self.row][self.col+1]
+
+    def is_empty(self):
+        """
+        Checks if the cell is an empty square.
+        """
+        return self.id == -1
+    
+    def is_red_piece(self):
+        """
+        Checks if the cell is an red piece.
+        """
+        return self.id == 0

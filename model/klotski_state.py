@@ -160,6 +160,13 @@ class KlotskiState:
         return abs(self.empty0.row - self.empty1.row) + abs(self.empty0.col - self.empty1.col) == 1
 
     def _get_double_moves(self):
+        """
+        Checks for the orientation of the connected empty squares 
+        and looks for pieces that could be moved into their places.
+
+        Returns:
+            list of Move: Possible double moves that can be done.
+        """
         doubles = []
         if self.empty0.row == self.empty1.row:
             if self.empty0.row >= 1 and self.empty0.up.id == self.empty1.up.id:
@@ -182,28 +189,35 @@ class KlotskiState:
 
         else:
             raise Exception(
-                '''this shouldn't happen; check the connection func''')
+                '''this shouldn't happen; check the empties connection func''')
 
         return doubles
 
     def _get_single_moves(self):
+        """
+
+        Returns:
+            _type_: _description_
+        """
         # this assumes that every piece is rectangular
         singles = []
 
         for e in self.empties:
             for dir in self.possible_directions:
                 row_sum, col_sum = self.direction_sums[dir]
+                # gets the adjascent indexes to be tested
                 test_row, test_col = e.row + row_sum, e.col + col_sum
 
                 if test_row >= 0 and test_row <= self.max_row \
                         and test_col >= 0 and test_col <= self.max_col:
 
                     test_cell = self.board[test_row][test_col]
-                    if test_cell.id == -1:
+                    if test_cell.is_empty():
                         continue
 
                     adj0, adj1 = self.direction_adjascents[dir]
-
+                    # checks if the piece is skinny enough to fit into the single
+                    # empty spot
                     if (test_cell[adj0] is None or test_cell.id != test_cell[adj0].id) \
                             and (test_cell[adj1] is None or test_cell.id != test_cell[adj1].id):
 
@@ -348,6 +362,6 @@ class KlotskiState:
             boolean: True if complete, False if not.
         """
         for row, col in self.goals:
-            if self.board[row][col].id != 0:
+            if not self.board[row][col].is_red_piece():
                 return False
         return True
