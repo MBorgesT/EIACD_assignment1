@@ -23,29 +23,28 @@ class Trie(object):
         self.root = TrieNode("")
     
     def insert(self, board):
-        """Insert a word into the trie"""
+        """Insert a board into the trie"""
         node = self.root
         
-        # Loop through each character in the word
-        # Check if there is no child containing the character, create a new child for the current node
+        # Loop through each cell in the board
+        # Check if there is no child containing the cell, create a new child for the current node
         for row in board:
             for cell in row:
                 if cell in node.children:
                     node = node.children[cell]
                 else:
-                    # If a character is not found,
+                    # If a cell is not found,
                     # create a new node in the trie
                     new_node = TrieNode(cell)
                     node.children[cell] = new_node
                     node = new_node
         
-        # Mark the end of a word
+        # Mark the end of a board
         node.is_end = True
         
     def is_in_trie(self, x):
-        """Given an input (a prefix), retrieve all words stored in
-        the trie with that prefix, sort the words by the number of 
-        times they have been inserted
+        """
+        Checks if the x board is in the tree.
         """
         # Use a variable within the class to keep all possible outputs
         # As there can be more than one word with such prefix
