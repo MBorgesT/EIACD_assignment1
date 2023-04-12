@@ -1,10 +1,7 @@
 from copy import deepcopy
+from collections import deque
 import heapq
-"""
-from concurrent.futures import wait, FIRST_COMPLETED
-from pebble import ProcessPool
-import multiprocessing
-"""
+from time import time
 
 from model.board_cell import BoardCell
 from model.klotski_state import KlotskiState
@@ -73,26 +70,77 @@ class Klotski:
         Return the game's goals.
         """
         return self.goals
+    
+    # =============================================================================
+    #                           UNINFORMED SEARCH
+    # =============================================================================
 
     def bfs(self):
         """
         Breadth first search.
         """
-        queue = [self.state]
-        visited = []
+        queue = deque([self.state])
+        visited = Trie()
 
         while queue:
-            current = queue.pop(0)
-            visited.append(self.state.id_matrix)
+            current = queue.popleft()
+            visited.insert(self.state.id_matrix)
 
             if current.is_complete():
                 return current
 
             for child in current.children():
-                if child.get_id_matrix() not in visited:
+                if not visited.is_in_trie(child.id_matrix):
                     queue.append(child)
 
         return None
+    
+    def dfs(self):
+        queue = deque([self.state])   # initialize the queue to store the nodes
+        visited = Trie()
+        
+        while queue:
+            current = queue.pop()
+            visited.insert(self.state.id_matrix)
+
+            if current.is_complete():
+                return current
+            
+            for child in current.children():
+                if not visited.is_in_trie(child.id_matrix):
+                    queue.append(child)
+                
+        return None
+    
+    def iterative_deepening_search(self):
+        for i in range(1, 100):
+            goal = self._depth_limited_dfs(i)
+            if goal is not None:
+                return goal
+                        
+        return None  
+    
+    def _depth_limited_dfs(self, depth_limit):
+        queue = deque([self.state])   # initialize the queue to store the nodes
+        visited = Trie()
+        
+        while queue:
+            current = queue.pop()
+            visited.insert(self.state.id_matrix)
+
+            if current.is_complete():
+                return current
+            
+            if len(current.move_history) < depth_limit:
+                for child in current.children():
+                    if not visited.is_in_trie(child.id_matrix):
+                        queue.append(child)
+                
+        return None
+    
+    # =============================================================================
+    #                            HEURISTIC SEARCH
+    # =============================================================================
     
     def a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
         """
@@ -161,45 +209,4 @@ class Klotski:
                     heapq.heappush(states, child)
         
         return None
-    
-    """
-    def parallel_a_star(self, manhattan_multi, zeros_empty_multi, inbet_multi, len_multi=1):
-        heuristic = lambda self, other: \
-            self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(self.move_history) - 1) * len_multi \
-            < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) + (len(other.move_history) - 1) * len_multi
-        return self.parallel_greedy_search(heuristic=heuristic)
-    
-    def parallel_greedy_search(self, manhattan_multi=12, zeros_empty_multi=1, inbet_multi=2, heuristic=None):
-        global loop
-        
-        if heuristic is None:
-            heuristic = lambda self, other: \
-                self.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi) \
-                < other.heuristic(manhattan_multi, zeros_empty_multi, inbet_multi)
-        setattr(KlotskiState, "__lt__", heuristic)
-        
-        states = [self.state]
-        visited = Trie()
 
-        def loop():
-            while True:
-                current = heapq.heappop(states)
-                visited.insert(current.get_id_matrix())
-
-                if current.is_complete():
-                    return current
-
-                for child in current.children():
-                    if not visited.is_in_trie(child.get_id_matrix()):
-                        heapq.heappush(states, child)
-        
-        workers = multiprocessing.cpu_count()
-        with ProcessPool(max_workers=workers) as pool:
-            funcs = set()
-            for _ in range(workers):
-                funcs.add(pool.schedule(loop))
-            done, not_done = wait(funcs, return_when=FIRST_COMPLETED)
-            for f in not_done:
-                f.cancel()
-            return list(done)[0].result()
-    """

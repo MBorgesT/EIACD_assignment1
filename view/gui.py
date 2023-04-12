@@ -1,16 +1,19 @@
 import pygame
-import os
+from decimal import Decimal
+
 from controller.controller import Controller
 
 
 class GUI:
+    """
+    The graphic user interface implemented in pygame.
+    """
 
-    inputs_folder = 'inputs/set1/'
-    search_algs = ('greedy', 'a_star')
+    search_algs = ('greedy', 'a_star', 'dfs', 'i_dfs', 'bfs')
 
     def __init__(self):
-        self.screen_width, self.screen_height = 800, 600
-        self.board_width = 550
+        self.screen_width, self.screen_height = 800, 650
+        self.board_width = 680
         self.divider_width = 5
         self.level_selector_width = self.screen_width - \
             self.board_width - self.divider_width
@@ -22,14 +25,14 @@ class GUI:
     def run(self):
         pygame.init()
 
-        self.font = pygame.font.SysFont('Arial', 16)
+        self.font14 = pygame.font.SysFont('Arial', 14)
+        self.font11 = pygame.font.SysFont('Arial', 11)
 
         self.screen = pygame.display.set_mode(
             (self.screen_width, self.screen_height))
 
         self.clock = pygame.time.Clock()
 
-        # temporary testing
         self.controller.load_game(self.level_id)
 
         self.solution = None
@@ -50,7 +53,7 @@ class GUI:
 
             # Render the graphics here.
             # ...
-            self.draw_board(*self.controller.get_current_board())
+            self.draw()
 
             pygame.display.flip()  # Refresh on-screen display
             self.clock.tick(60)
@@ -63,17 +66,28 @@ class GUI:
                 self.controller.load_game(l)
                 return
 
-
-        if not self.controller.searching:
-            for b, alg_name in self.search_buttons:
-                if b.collidepoint(mouse_pos):
-                    self.controller.search_alg(alg_name)
-                    return
+        for b, alg_name in self.search_buttons:
+            if b.collidepoint(mouse_pos):
+                self.controller.search_alg(alg_name)
+                return
             
         for b, alg_name in self.play_buttons:
             if b.collidepoint(mouse_pos):
                 self.controller.play(alg_name)
                 return
+
+    def draw(self):
+        # board
+        self.draw_board(*self.controller.get_current_board())
+
+        # divider
+        self.draw_divider()
+
+        # selectors
+        self.draw_level_selector()
+
+        # search algs
+        self.draw_search_buttons()
 
     def draw_board(self, board, goals, square_size=80, square_border=2, goal_size=16):
         margin = (self.board_width - (square_size * len(board[0]))) / 2
@@ -87,7 +101,7 @@ class GUI:
                 else:
                     color = (255, 255, 0)
 
-                height_pos = margin + (i * square_size) + square_border
+                height_pos = margin + (i * square_size) + square_border + 50
                 width_pos = margin + (j * square_size) + square_border
 
                 pygame.draw.rect(
@@ -120,7 +134,7 @@ class GUI:
         # goals
         for goal_row, goal_col in goals:
             height_pos = margin + (goal_row * square_size) + \
-                ((square_size - goal_size) / 2)
+                ((square_size - goal_size) / 2) + 50
             width_pos = margin + (goal_col * square_size) + \
                 ((square_size - goal_size) / 2)
 
@@ -131,15 +145,6 @@ class GUI:
                 border_radius=2
             )
 
-        # divider
-        self.draw_divider()
-
-        # selectors
-        self.draw_level_selector()
-
-        # search algs
-        self.draw_search_buttons()
-
     def draw_divider(self):
         pygame.draw.rect(
             self.screen, (255, 255, 255),
@@ -148,9 +153,7 @@ class GUI:
         )
 
     def draw_level_selector(self, margin_size=2, rectangle_height=30):
-        levels = [x.replace('.txt', '')
-                  for x in 
-                  sorted(os.listdir(self.inputs_folder), key=lambda x: int(''.join(c for c in x if c.isdigit())))]
+        levels = self.controller.get_level_names()
         base_width = self.board_width + self.divider_width
 
         self.level_selection_buttons = []
@@ -162,39 +165,70 @@ class GUI:
                 pygame.Rect(base_width, base_height,
                             self.level_selector_width, rectangle_height)
             )
-            pygame.draw.rect(
-                self.screen, (0, 0, 0),
+
+            if l == self.controller.get_current_game_id():
+                background_color = (80, 80, 80)
+            else:
+                background_color = (0, 0, 0)
+            b = pygame.draw.rect(
+                self.screen, background_color,
                 pygame.Rect(base_width + margin_size, base_height - margin_size,
                             self.level_selector_width - (2 * margin_size), rectangle_height - (2 * margin_size))
             )
 
-            text_img = self.font.render(l, True, (255, 255, 255))
-            b = self.screen.blit(
+            text_img = self.font14.render(l, True, (255, 255, 255))
+            self.screen.blit(
                 text_img, (base_width + 2 * margin_size, base_height + 2 * margin_size))
             self.level_selection_buttons.append((b, l))
 
-    def draw_search_buttons(self):
+    def draw_search_buttons(self, button_width=85, button_height=20):
         self.search_buttons = []
         self.play_buttons = []
 
         for i, alg_name in enumerate(self.search_algs):
-            start_width = i * 100 + (i + 1) * 10
+            start_width = i * button_width + (i + 1) * 10
 
             b = pygame.draw.rect(
                 self.screen, (0, 200, 0),
-                pygame.Rect(start_width, 10, 100, 30)
+                pygame.Rect(start_width, 10, button_width, button_height)
             )
-            text_img = self.font.render(alg_name.upper(), True, (255, 255, 255))
+            text_img = self.font14.render(alg_name.upper(), True, (255, 255, 255))
             self.screen.blit(text_img, (start_width, 10))
 
             self.search_buttons.append((b, alg_name))
 
             if self.controller.is_alg_ready(alg_name):
+                results = self.controller.get_results(alg_name)
+                n_moves = results['n_moves']
+                exec_time = round(results['exec_time'], 2)
+                memory_used = '%.2e' % Decimal(results['memory_used'])
+                # info board
+                pygame.draw.rect(
+                    self.screen, (120, 120, 120),
+                    pygame.Rect(start_width, 40, button_width, 90)
+                )
+
+                text_img = self.font11.render('n moves:', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 40))
+                text_img = self.font11.render(str(n_moves), True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 54))
+
+                text_img = self.font11.render('exec time:', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 70))
+                text_img = self.font11.render(f'{exec_time} sec', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 84))
+
+                text_img = self.font11.render('memory used:', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 100))
+                text_img = self.font11.render(f'{memory_used} blocks', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 114))
+
                 play_b = pygame.draw.rect(
                     self.screen, (0, 200, 0),
-                    pygame.Rect(start_width, 50, 100, 30)
+                    pygame.Rect(start_width, 140, button_width, button_height)
                 )
-                text_img = self.font.render('PLAY', True, (255, 255, 255))
-                self.screen.blit(text_img, (start_width, 50))
+                text_img = self.font14.render('PLAY', True, (255, 255, 255))
+                self.screen.blit(text_img, (start_width, 140))
 
                 self.play_buttons.append((play_b, alg_name))
+

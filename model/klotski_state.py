@@ -118,10 +118,12 @@ class KlotskiState:
         empties = []
         for row in range(len(self.board)):
             for col in range(len(self.board[0])):
-                if self.board[row][col].id == -1:
+                if self.board[row][col].is_empty():
                     empties.append(self.board[row][col])
 
-        assert len(empties) == 2
+        if len(empties) != 2:
+            print(empties)
+            raise Exception("This shouldn't happen")
         return set(empties)
 
     def _find_zeros(self):
@@ -135,7 +137,7 @@ class KlotskiState:
         zeros = []
         for row in range(len(self.board)):
             for col in range(len(self.board[0])):
-                if self.board[row][col].id == 0:
+                if self.board[row][col].is_red_piece():
                     zeros.append(self.board[row][col])
 
         return set(zeros)
@@ -302,23 +304,6 @@ class KlotskiState:
         
         return v0 + v1
 
-    '''
-    def empties_destination_distance(self):
-        dist_func = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
-        objectives = self.get_objectives()
-
-        dist0 = min([dist_func(o, self.empty0) for o in objectives]) - 1
-        dist1 = min([dist_func(o, self.empty1) for o in objectives]) - 1
-
-        return dist0 + dist1
-    '''
-
-    '''
-    def empties_higher_than_zeros(self):
-        return int(all([self.empty0[0] > z[0] for z in self.zeros])) \
-            + int(all([self.empty1[0] > z[0] for z in self.zeros]))
-    '''
-
     def heuristic(self, manhattan_multi, zeros_empty_multi, inbet_multi):
         """
         Weighted sum of each evaluation heuristic we have in the class.
@@ -329,7 +314,7 @@ class KlotskiState:
             zeros_empty_multi (float): Weight for the distance between
             the red piece and the empty squares.
 
-            inbet_multi (float): Weight for the heck if the the empty 
+            inbet_multi (float): Weight for the check if the the empty 
             squares are between the red piece and the goals.
         goals
 
@@ -353,7 +338,7 @@ class KlotskiState:
         moves += self._get_single_moves()
 
         return [self._do_move(m) for m in moves]
-
+    
     def is_complete(self):
         """
         Checks if the state is a final one. It is when all the
