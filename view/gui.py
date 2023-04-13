@@ -6,12 +6,17 @@ from controller.controller import Controller
 
 class GUI:
     """
-    The graphic user interface implemented in pygame.
+    The graphic user interface implemented in pygame. Uses the
+    Controller class to get the information necessary to run
+    the game and its search algorithms.
     """
 
     search_algs = ('greedy', 'a_star', 'dfs', 'i_dfs', 'bfs')
 
     def __init__(self):
+        """
+        Initializes the class with some class wide parameters.
+        """
         self.screen_width, self.screen_height = 800, 650
         self.board_width = 680
         self.divider_width = 5
@@ -23,6 +28,9 @@ class GUI:
         self.controller = Controller()
 
     def run(self):
+        """
+        The game loop.
+        """
         pygame.init()
 
         self.font14 = pygame.font.SysFont('Arial', 14)
@@ -59,6 +67,11 @@ class GUI:
             self.clock.tick(60)
 
     def click_action(self):
+        """
+        This runs when a click is detected, then identifying
+        which one was clicked and what needs to happen after
+        it.
+        """
         mouse_pos = pygame.mouse.get_pos()
 
         for b, l in self.level_selection_buttons:
@@ -77,6 +90,10 @@ class GUI:
                 return
 
     def draw(self):
+        """
+        This function calls a drawing function for each indivudal
+        part of the screen.
+        """
         # board
         self.draw_board(*self.controller.get_current_board())
 
@@ -90,6 +107,9 @@ class GUI:
         self.draw_search_buttons()
 
     def draw_board(self, board, goals, square_size=80, square_border=2, goal_size=16):
+        """
+        Drawing function for the displayed board.
+        """
         margin = (self.board_width - (square_size * len(board[0]))) / 2
 
         for i, row in enumerate(board):
@@ -146,6 +166,10 @@ class GUI:
             )
 
     def draw_divider(self):
+        """
+        Drawing function for the divider between the board
+        and the level selector.
+        """
         pygame.draw.rect(
             self.screen, (255, 255, 255),
             pygame.Rect(self.board_width, 0,
@@ -153,6 +177,9 @@ class GUI:
         )
 
     def draw_level_selector(self, margin_size=2, rectangle_height=30):
+        """
+        Drawing function for the level selector.
+        """
         levels = self.controller.get_level_names()
         base_width = self.board_width + self.divider_width
 
@@ -182,6 +209,10 @@ class GUI:
             self.level_selection_buttons.append((b, l))
 
     def draw_search_buttons(self, button_width=85, button_height=20):
+        """
+        Drawing function for the search algorithms buttons, the information
+        it generates, and their playing animation buttons.
+        """
         self.search_buttons = []
         self.play_buttons = []
 
